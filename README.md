@@ -59,7 +59,7 @@ The verification script starts a temporary container, checks published HTTP endp
 
 The **Publish image** workflow is manually triggered on `main`. It builds and verifies an AMD64 image, then pushes `ghcr.io/ymkt-95/terraform-cloud-platform-demo:sha-<commit>` using its temporary `GITHUB_TOKEN`. Copy the immutable `ghcr.io/...@sha256:...` reference from the workflow summary into Terraform's `image_ref` variable.
 
-A public source repository does not automatically make its GHCR package public. After the first publication, set the package visibility to **Public**, then verify a pull using a clean Docker credential configuration. EC2 expects anonymous access; no registry token is placed in user data.
+A public source repository does not by itself guarantee that its GHCR package is public. Verify the package visibility is **Public**, then verify a pull using a clean Docker credential configuration. EC2 expects anonymous access; no registry token is placed in user data. The first published image is public and its anonymous AMD64 pull has been verified; its digest is recorded in `terraform/terraform.tfvars.example`.
 
 ## Terraform configuration
 
@@ -78,7 +78,7 @@ terraform -chdir=terraform test
 
 Tests use a mock AWS provider. They check the intended network/security settings and reject mutable image tags, invalid client CIDRs and incompatible ARM instance types. They do not prove that account permissions, AMI availability or EC2 bootstrap work in AWS.
 
-For a real deployment, first publish an anonymously accessible image and authenticate to AWS. Copy `terraform/terraform.tfvars.example` to `terraform/terraform.tfvars`, replacing the digest and client address. Then:
+For a real deployment, authenticate to AWS and use an anonymously accessible image. Copy `terraform/terraform.tfvars.example` to `terraform/terraform.tfvars`, replacing the client address and, when deploying a newer image, the digest. Then:
 
 ```bash
 terraform -chdir=terraform init
@@ -112,7 +112,7 @@ The Node process receives termination signals directly and closes its HTTP serve
 - [First-stage walkthrough](docs/phase-1.md): Chinese explanations and acceptance checks.
 - [Deployment preparation](docs/phase-2.md): image publishing, Terraform resource responsibilities, AWS login and deployment checks in Chinese.
 
-Next: complete the first image publication and anonymous pull, review a real AWS plan, verify deployment and cleanup, then refactor networking into a module using `moved` blocks. Cloud deployment and cleanup will be verified before being described as complete.
+Next: review a real AWS plan, verify deployment and cleanup, then refactor networking into a module using `moved` blocks. Cloud deployment and cleanup will be verified before being described as complete.
 
 ## References
 

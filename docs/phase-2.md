@@ -8,7 +8,7 @@
 
 镜像名是 `ghcr.io/ymkt-95/terraform-cloud-platform-demo`，标签包含完整 Git commit。部署使用工作流摘要里的 `@sha256:...` 引用，确保拉取指定内容。
 
-首次发布后，在 GitHub 个人主页的 Packages 中进入该包的 Package settings，将可见性设为 Public。源代码仓库公开并不意味着容器包自动公开。包发布后还需要验证匿名拉取；否则 EC2 的 `docker pull` 会失败。
+首次发布后，在 GitHub 个人主页的 Packages 中进入该包的 Package settings，确认可见性为 Public。源代码仓库公开不能代替对容器包可见性的检查。包发布后还需要验证匿名拉取；否则 EC2 的 `docker pull` 会失败。本项目首个镜像已确认公开且可匿名拉取。
 
 本地可以用一个临时 Docker 配置验证匿名拉取。`IMAGE_REF` 请填真实 digest；保留 Docker Desktop 使用的连接地址，不复制任何登录凭据：
 
@@ -16,7 +16,7 @@
 IMAGE_REF='ghcr.io/ymkt-95/terraform-cloud-platform-demo@sha256:真实摘要'
 docker_endpoint=$(docker context inspect --format '{{.Endpoints.docker.Host}}')
 anonymous_config=$(mktemp -d)
-DOCKER_CONFIG="$anonymous_config" docker --host "$docker_endpoint" pull "$IMAGE_REF"
+DOCKER_CONFIG="$anonymous_config" docker --host "$docker_endpoint" pull --platform linux/amd64 "$IMAGE_REF"
 rmdir "$anonymous_config"
 ```
 
@@ -61,7 +61,7 @@ aws sts get-caller-identity
 
 ## 第一次真实 plan 与部署
 
-先完成镜像发布和匿名拉取，再复制 `terraform.tfvars.example` 为同目录的 `terraform.tfvars`，替换镜像摘要和你的公网 IPv4 `/32`。示例里的 `203.0.113.10` 是文档地址，不能直接用于访问。
+先完成镜像发布和匿名拉取，再复制 `terraform.tfvars.example` 为同目录的 `terraform.tfvars`，填入你的公网 IPv4 `/32`。示例已包含首个真实镜像摘要；更新镜像时再替换它。示例里的 `203.0.113.10` 是文档地址，不能直接用于访问。
 
 ```bash
 terraform -chdir=terraform init
@@ -103,6 +103,16 @@ Linux user data 默认首次启动时执行。这里配置 `user_data_replace_on
 部署后先确认重复 plan 没有非预期变更。后续模块迁移需保留 state；最后再执行 `terraform destroy`，确认资源和根磁盘清理。停止 EC2 不等同于删除全部计费资源。
 
 不要提交或删除尚需使用的本地 state。`.terraform.lock.hcl` 应提交；它锁定 provider，不包含 AWS 登录凭据。
+
+## 本轮验证记录
+
+- Terraform 1.16.5、AWS provider 6.67.0：格式和配置验证通过，4 项模拟测试通过。
+- 锁文件包含 macOS ARM64 与 Linux AMD64 的 provider 校验记录。
+- AMD64 容器的 HTTP、健康状态、非 root 用户和退出行为已在本机与 GitHub runner 验证。
+- [远程验证通过](https://github.com/YMKT-95/terraform-cloud-platform-demo/actions/runs/37147126558)。
+- [镜像发布成功](https://github.com/YMKT-95/terraform-cloud-platform-demo/actions/runs/37147020593)，镜像源代码提交为 `ead8189`。
+- 已使用空白 Docker 凭据配置匿名拉取示例 tfvars 中的真实镜像 digest。
+- 真实 AWS plan/apply、EC2 上的启动脚本运行以及 destroy 尚未执行。
 
 ## 参考
 

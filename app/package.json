@@ -1,0 +1,17 @@
+{
+  "name": "terraform-cloud-platform-demo-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal HTTP service for a Terraform and AWS portfolio project",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "dependencies": {
+    "express": "5.2.1"
+  }
+}

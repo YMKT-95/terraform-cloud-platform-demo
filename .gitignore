@@ -1,0 +1,17 @@
+node_modules/
+npm-debug.log*
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Local Terraform data and saved plans may contain sensitive values.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.tfplan
+crash.log
+crash.*.log
+# Commit .terraform.lock.hcl and safe *.tfvars.example files.

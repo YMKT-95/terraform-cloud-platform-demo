@@ -1,0 +1,41 @@
+#!/bin/bash
+set -euo pipefail
+exec > >(tee -a /var/log/terraform-demo-bootstrap.log) 2>&1
+
+trap 'code=$?; echo "Bootstrap failed with exit code $code"; docker logs terraform-demo-app 2>/dev/null || true; exit "$code"' ERR
+
+retry() {
+  local attempt
+  for attempt in {1..5}; do
+    if "$@"; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+retry dnf install -y docker curl-minimal
+systemctl enable --now docker
+systemctl enable --now amazon-ssm-agent
+
+retry docker pull '${image_ref}'
+docker run -d \
+  --name terraform-demo-app \
+  --restart unless-stopped \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
+  -p 80:3000 \
+  '${image_ref}'
+
+for attempt in {1..30}; do
+  if curl --fail --silent --show-error --max-time 3 http://127.0.0.1/health | grep -q '"status":"healthy"'; then
+    echo 'Application is healthy'
+    exit 0
+  fi
+  sleep 2
+done
+
+docker logs terraform-demo-app
+echo 'Application health check timed out' >&2
+exit 1

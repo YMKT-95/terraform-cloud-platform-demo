@@ -2,7 +2,7 @@
 
 A small portfolio project connecting a Dockerised Node.js service with AWS infrastructure managed by Terraform.
 
-Current scope: the application and local Docker setup. AWS infrastructure, image publishing, Terraform modules and GitHub Actions are planned; they are not implemented yet. This project will use the Terraform CLI and does not require HCP Terraform.
+Current scope: a locally verified application and Docker image, GitHub Actions for validation and image publishing, and Terraform configuration for a single EC2 deployment. Real AWS plan/apply/destroy and the networking-module refactor are still pending. This project uses the Terraform CLI and does not require HCP Terraform.
 
 ## Run locally
 
@@ -48,6 +48,56 @@ Dependencies are pinned in `package-lock.json` and installed with `npm ci`. The 
 
 The default build targets the local machine's architecture. Before deploying to x86 EC2, build and verify a `linux/amd64` image; an Apple Silicon build must not be assumed to work on x86.
 
+```bash
+docker build --platform linux/amd64 -t terraform-demo-app:amd64 ./app
+bash scripts/verify-container.sh terraform-demo-app:amd64
+```
+
+The verification script starts a temporary container, checks published HTTP endpoints, Docker health, the non-root user and graceful shutdown, then removes the container.
+
+## Publish an image
+
+The **Publish image** workflow is manually triggered on `main`. It builds and verifies an AMD64 image, then pushes `ghcr.io/ymkt-95/terraform-cloud-platform-demo:sha-<commit>` using its temporary `GITHUB_TOKEN`. Copy the immutable `ghcr.io/...@sha256:...` reference from the workflow summary into Terraform's `image_ref` variable.
+
+A public source repository does not automatically make its GHCR package public. After the first publication, set the package visibility to **Public**, then verify a pull using a clean Docker credential configuration. EC2 expects anonymous access; no registry token is placed in user data.
+
+## Terraform configuration
+
+The root configuration in `terraform/` defines one VPC, a public subnet, an internet gateway and route, HTTP security-group rules, an SSM instance role and one EC2 instance. The public subnet is derived from the VPC CIDR. EC2 uses Amazon Linux 2023 x86_64, an encrypted 8 GiB root disk and IMDSv2. Docker publishes container port 3000 on host port 80. HTTP access is restricted by `allowed_http_cidr`; there is no SSH ingress rule.
+
+Terraform's local state is kept outside Git. Keep it until `destroy` has completed; it is required to track and clean up resources. The provider lock file is committed. The current toolchain uses Terraform 1.16.5 and the AWS provider version recorded in that lock file.
+
+Validation without AWS credentials:
+
+```bash
+terraform -chdir=terraform init -backend=false -input=false -lockfile=readonly
+terraform -chdir=terraform fmt -check -recursive
+terraform -chdir=terraform validate
+terraform -chdir=terraform test
+```
+
+Tests use a mock AWS provider. They check the intended network/security settings and reject mutable image tags, invalid client CIDRs and incompatible ARM instance types. They do not prove that account permissions, AMI availability or EC2 bootstrap work in AWS.
+
+For a real deployment, first publish an anonymously accessible image and authenticate to AWS. Copy `terraform/terraform.tfvars.example` to `terraform/terraform.tfvars`, replacing the digest and client address. Then:
+
+```bash
+terraform -chdir=terraform init
+terraform -chdir=terraform plan -out=deployment.tfplan
+# Review account, region and every planned change before creating resources.
+terraform -chdir=terraform apply deployment.tfplan
+terraform -chdir=terraform output
+# Wait for bootstrap and check the application's /health endpoint.
+terraform -chdir=terraform destroy
+```
+
+EC2, EBS and public IPv4 can incur charges. This demo has no load balancer, NAT gateway or database. Apply returning successfully does not mean the container is ready. Use SSM Session Manager to inspect `/var/log/cloud-init-output.log`, `/var/log/terraform-demo-bootstrap.log` and `docker logs terraform-demo-app` if the HTTP check fails.
+
+Image/bootstrap changes replace the instance and can change its public address. The AMI comes from AWS's current Amazon Linux 2023 public SSM parameter; a later AMI update can also propose replacement. Review every plan. The demo serves plain HTTP and has a single instance; it is not a production deployment.
+
+## Continuous integration
+
+**Validate** runs on pushes to `main` and pull requests. It checks Terraform formatting, initialization with the committed provider lock file, validation, mocked plans and the AMD64 container. It has no AWS credentials and does not deploy resources. Image publishing is a separate manual workflow with package-write permission.
+
 ## Health and shutdown
 
 `GET /health` returns HTTP 200 when the HTTP service is responding. There are no database or external-service dependencies. Docker records the health result; an unhealthy status alone does not automatically restart a container.
@@ -60,10 +110,14 @@ The Node process receives termination signals directly and closes its HTTP serve
 - `app/package.json` and `app/package-lock.json`: commands and locked dependencies.
 - `app/Dockerfile` and `app/.dockerignore`: runtime image and allowed build inputs.
 - [First-stage walkthrough](docs/phase-1.md): Chinese explanations and acceptance checks.
+- [Deployment preparation](docs/phase-2.md): image publishing, Terraform resource responsibilities, AWS login and deployment checks in Chinese.
 
-Next: publish a versioned image, provision a VPC and EC2 instance, deploy through user data, refactor networking into a module, then add Terraform validation in CI. Cloud deployment and cleanup will be verified before being described as complete.
+Next: complete the first image publication and anonymous pull, review a real AWS plan, verify deployment and cleanup, then refactor networking into a module using `moved` blocks. Cloud deployment and cleanup will be verified before being described as complete.
 
 ## References
 
 - [Express installation](https://expressjs.com/en/starter/installing/)
 - [Docker Node.js guide](https://docs.docker.com/guides/nodejs/)
+- [Terraform provider mocking](https://developer.hashicorp.com/terraform/language/tests/mocking)
+- [GHCR authentication and visibility](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
+- [AWS CLI browser-based login](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sign-in.html)

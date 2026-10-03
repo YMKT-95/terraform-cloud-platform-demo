@@ -1,0 +1,48 @@
+name: Publish image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Set image name
+        shell: bash
+        run: |
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      - name: Build AMD64 image
+        run: |
+          docker build --platform linux/amd64 \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            -t "$IMAGE:sha-$GITHUB_SHA" ./app
+      - name: Verify container before publishing
+        run: bash scripts/verify-container.sh "$IMAGE:sha-$GITHUB_SHA"
+      - name: Log in to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Publish and record immutable reference
+        run: |
+          docker push "$IMAGE:sha-$GITHUB_SHA"
+          docker pull "$IMAGE:sha-$GITHUB_SHA"
+          reference=$(docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE:sha-$GITHUB_SHA")
+          {
+            echo '### Deployment image'
+            echo
+            printf '`%s`\n' "$reference"
+            echo
+            echo 'Set the GHCR package visibility to public and verify an anonymous pull before AWS deployment.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Log out
+        if: always()
+        run: docker logout ghcr.io

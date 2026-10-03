@@ -1,0 +1,9 @@
+aws_region    = "ap-southeast-2"
+environment   = "dev"
+instance_type = "t3.micro"
+vpc_cidr      = "10.20.0.0/16"
+
+# Documentation-only values: replace BOTH before a real plan/apply.
+# Copy the real immutable digest from the Publish image workflow summary.
+image_ref         = "ghcr.io/ymkt-95/terraform-cloud-platform-demo@sha256:REPLACE_WITH_PUBLISHED_DIGEST"
+allowed_http_cidr = "203.0.113.10/32" # Replace with your public IPv4 address /32.

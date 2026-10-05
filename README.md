@@ -2,7 +2,7 @@
 
 A small portfolio project connecting a Dockerised Node.js service with AWS infrastructure managed by Terraform.
 
-Current scope: a locally verified application and Docker image, GitHub Actions for validation and image publishing, and Terraform configuration for a single EC2 deployment. Real AWS plan/apply/destroy and the networking-module refactor are still pending. This project uses the Terraform CLI and does not require HCP Terraform.
+Current scope: a verified application and Docker image, GitHub Actions for validation and image publishing, and a successful Terraform deployment to one EC2 instance in Sydney. The first real apply created 13 resources, both HTTP endpoints passed, and a subsequent plan reported no changes. Cleanup, restart recovery and the networking-module refactor are still pending. This project uses the Terraform CLI and does not require HCP Terraform.
 
 ## Run locally
 
@@ -21,7 +21,7 @@ curl --fail http://localhost:3000/
 curl --fail http://localhost:3000/health
 ```
 
-The responses are `{"service":"terraform-cloud-platform-demo","version":"0.1.0"}` and `{"status":"healthy"}`. Stop the server with Ctrl+C.
+The root path serves the showcase page. `/health` returns `{"status":"healthy"}`; `/api/info` returns the running version, source revision and region. Stop the server with Ctrl+C.
 
 Use `npm run dev` to restart automatically when source files change. Set `PORT=3001 npm start` if port 3000 is already occupied. The server listens on `0.0.0.0` so it can also receive traffic inside a container.
 
@@ -57,7 +57,7 @@ The verification script starts a temporary container, checks published HTTP endp
 
 ## Publish an image
 
-The **Publish image** workflow is manually triggered on `main`. It builds and verifies an AMD64 image, then pushes `ghcr.io/ymkt-95/terraform-cloud-platform-demo:sha-<commit>` using its temporary `GITHUB_TOKEN`. Copy the immutable `ghcr.io/...@sha256:...` reference from the workflow summary into Terraform's `image_ref` variable.
+The **Ship showcase** workflow runs on pushes to `main` and manual dispatch. It calls validation, builds and verifies an AMD64 image, then pushes `ghcr.io/ymkt-95/terraform-cloud-platform-demo:sha-<commit>` using its temporary `GITHUB_TOKEN`. When the AWS OIDC role is configured, it deploys the immutable digest to the existing EC2 instance using SSM, verifies the running commit and attempts rollback if cutover fails. See [CI/CD setup and walkthrough](docs/phase-3.md).
 
 A public source repository does not by itself guarantee that its GHCR package is public. Verify the package visibility is **Public**, then verify a pull using a clean Docker credential configuration. EC2 expects anonymous access; no registry token is placed in user data. The first published image is public and its anonymous AMD64 pull has been verified; its digest is recorded in `terraform/terraform.tfvars.example`.
 
@@ -92,11 +92,11 @@ terraform -chdir=terraform destroy
 
 EC2, EBS and public IPv4 can incur charges. This demo has no load balancer, NAT gateway or database. Apply returning successfully does not mean the container is ready. Use SSM Session Manager to inspect `/var/log/cloud-init-output.log`, `/var/log/terraform-demo-bootstrap.log` and `docker logs terraform-demo-app` if the HTTP check fails.
 
-Image/bootstrap changes replace the instance and can change its public address. The AMI comes from AWS's current Amazon Linux 2023 public SSM parameter; a later AMI update can also propose replacement. Review every plan. The demo serves plain HTTP and has a single instance; it is not a production deployment.
+Changes to Terraform's bootstrap image/user data replace the instance and can change its public address. Routine application releases use SSM to replace only the container. After infrastructure replacement, update the workflow target and its IAM resource scope, then deploy again; Terraform's bootstrap image is not automatically kept in sync with CD. The AMI comes from AWS's current Amazon Linux 2023 public SSM parameter; a later AMI update can also propose replacement. Review every plan. The demo serves plain HTTP and has a single instance; it is not a production deployment.
 
 ## Continuous integration
 
-**Validate** runs on pushes to `main` and pull requests. It checks Terraform formatting, initialization with the committed provider lock file, validation, mocked plans and the AMD64 container. It has no AWS credentials and does not deploy resources. Image publishing is a separate manual workflow with package-write permission.
+**Validate** runs on pull requests, manual dispatch and as a required job in **Ship showcase**. It checks Terraform formatting, initialization with the committed provider lock file, validation, mocked plans, the AMD64 container and deployment recovery behavior. Validation has no AWS credentials. The release workflow grants package-write permission only to publishing and OIDC permission only to deployment. Deployment is limited to the configured demo instance.
 
 ## Health and shutdown
 
@@ -106,13 +106,14 @@ The Node process receives termination signals directly and closes its HTTP serve
 
 ## Files and next steps
 
-- `app/server.js`: HTTP endpoints, configurable port and shutdown handling.
+- `app/server.js` and `app/public/`: showcase page, live health/release endpoints and shutdown handling.
+- [Showcase and CI/CD](docs/phase-3.md): OIDC setup, release flow, rollback and the Terraform/application boundary.
 - `app/package.json` and `app/package-lock.json`: commands and locked dependencies.
 - `app/Dockerfile` and `app/.dockerignore`: runtime image and allowed build inputs.
 - [First-stage walkthrough](docs/phase-1.md): Chinese explanations and acceptance checks.
 - [Deployment preparation](docs/phase-2.md): image publishing, Terraform resource responsibilities, AWS login and deployment checks in Chinese.
 
-Next: review a real AWS plan, verify deployment and cleanup, then refactor networking into a module using `moved` blocks. Cloud deployment and cleanup will be verified before being described as complete.
+Next: verify restart recovery and cleanup, then refactor networking into a module using `moved` blocks. The first deployment and application bootstrap are verified; destroy has not yet been tested. See the [deployment verification record](docs/phase-2.md#本轮验证记录) for the completed checks.
 
 ## References
 

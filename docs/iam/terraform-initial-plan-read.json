@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadSydneyAvailabilityZones",
+      "Effect": "Allow",
+      "Action": "ec2:DescribeAvailabilityZones",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-2"
+        }
+      }
+    },
+    {
+      "Sid": "ReadAmazonLinux2023Ami",
+      "Effect": "Allow",
+      "Action": "ssm:GetParameter",
+      "Resource": "arn:aws:ssm:ap-southeast-2::parameter/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f4ef">
+  <meta name="description" content="A live cloud engineering showcase: Terraform infrastructure, container delivery and GitHub Actions on AWS.">
+  <title>Cloud / shipped — Terraform platform demo</title>
+  <link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="navigation wrap">
+    <a class="brand" href="/" aria-label="Cloud shipped home"><span class="brand-icon">↗</span> cloud<span class="brand-light">/shipped</span></a>
+    <nav aria-label="Main navigation"><a href="#delivery">The pipeline</a><a href="https://github.com/YMKT-95/terraform-cloud-platform-demo" target="_blank" rel="noopener noreferrer">View source <span aria-hidden="true">↗</span></a></nav>
+  </header>
+  <main>
+    <section class="hero wrap">
+      <div class="intro">
+        <p class="eyebrow"><span class="small-line"></span> A CLOUD ENGINEERING SHOWCASE</p>
+        <h1>From commit.<br>To <span>cloud.</span></h1>
+        <p class="hero-copy">A small service. The whole delivery journey.<br>Infrastructure in code, a reproducible container, and a release pipeline you can inspect.</p>
+        <div class="hero-actions"><a class="button primary" href="https://github.com/YMKT-95/terraform-cloud-platform-demo/actions" target="_blank" rel="noopener noreferrer">Explore the pipeline <span aria-hidden="true">↗</span></a><a class="text-link" href="#under-the-hood">Under the hood <span aria-hidden="true">↓</span></a></div>
+        <div class="stack-tags" aria-label="Technology stack"><span>Terraform</span><span>AWS</span><span>Docker</span><span>GitHub Actions</span></div>
+      </div>
+      <div class="live-card">
+        <div class="card-header"><span class="eyebrow">LIVE SERVICE</span><span id="status" class="status checking" role="status">Checking…</span></div>
+        <div class="cloud-illustration" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="node node-code">{ }</div><div class="node node-cloud">☁</div><div class="node node-box">▣</div><div class="orbit-dot"></div><div class="orbit-dot second"></div></div>
+        <div class="service-label"><span class="mono">terraform-cloud-platform-demo</span><span class="service-caption">This page is served by the deployed container.</span></div>
+        <dl class="release-grid"><div><dt>VERSION</dt><dd id="version">—</dd></div><div><dt>REVISION</dt><dd><a id="revision">—</a></dd></div><div><dt>HEALTH RESPONSE</dt><dd id="latency">—</dd></div><div><dt>LAST CHECKED</dt><dd id="checked">—</dd></div></dl>
+        <div class="card-bottom"><span><span class="dot"></span> <span id="region">Reading runtime…</span></span><button id="refresh" type="button">Check again ↻</button></div>
+      </div>
+    </section>
+    <section class="delivery wrap" id="delivery">
+      <div class="section-top"><div><p class="eyebrow">01 / THE DELIVERY PATH</p><h2>One commit. A traceable release.</h2></div><a class="text-link" href="https://github.com/YMKT-95/terraform-cloud-platform-demo/actions/workflows/publish-image.yml" target="_blank" rel="noopener noreferrer">See workflow runs ↗</a></div>
+      <div class="pipeline">
+        <article><div class="step-top"><span class="step-number">01</span><span class="step-icon">⌘</span></div><h3>Commit</h3><p>Push a change to main. The source commit identifies the release.</p><span class="step-tool">GIT + GITHUB</span></article>
+        <article><div class="step-top"><span class="step-number">02</span><span class="step-icon">✓</span></div><h3>Verify</h3><p>Build for AMD64. Check HTTP, container health and graceful shutdown.</p><span class="step-tool">GITHUB ACTIONS</span></article>
+        <article><div class="step-top"><span class="step-number">03</span><span class="step-icon">▣</span></div><h3>Publish</h3><p>Store the container in GHCR. Deploy its immutable SHA-256 digest.</p><span class="step-tool">DOCKER + GHCR</span></article>
+        <article><div class="step-top"><span class="step-number">04</span><span class="step-icon">↗</span></div><h3>Deploy</h3><p>Update EC2 through SSM. Check the release and restore the old container on failure.</p><span class="step-tool">AWS + OIDC</span></article>
+      </div>
+      <p class="pipeline-note">The workflow is the release record. Live checks above measure this application, not the GitHub pipeline.</p>
+    </section>
+    <section class="details wrap" id="under-the-hood">
+      <div class="details-copy"><p class="eyebrow">02 / UNDER THE HOOD</p><h2>Small by design.<br>Real all the way through.</h2><p>Terraform provisions the network and compute. GitHub Actions delivers the application. A simple health endpoint makes each release observable.</p><a class="text-link" href="https://github.com/YMKT-95/terraform-cloud-platform-demo#readme" target="_blank" rel="noopener noreferrer">Read the implementation ↗</a><div class="facts"><div><span>COMPUTE</span><strong>EC2 · t3.micro</strong></div><div><span>RUNTIME</span><strong>Node.js · Docker</strong></div><div><span>INFRASTRUCTURE</span><strong>Terraform · VPC</strong></div><div><span>AUTHENTICATION</span><strong>GitHub OIDC</strong></div></div></div>
+      <div class="terminal"><div class="terminal-bar"><span class="terminal-dots">● ● ●</span><span>live health request</span><a href="/health" target="_blank" rel="noopener">Open endpoint ↗</a></div><div class="terminal-content"><p><span class="terminal-prompt">$</span> curl <span id="health-url">/health</span></p><pre id="health-body">Waiting for the service…</pre><p class="terminal-comment" id="health-detail"># Checking the same service that serves this page.</p></div><div class="terminal-footer">No simulated metrics. Response fetched from /health.</div></div>
+    </section>
+  </main>
+  <footer class="wrap"><span>Built to learn. Shipped to show.</span><span>A single-instance portfolio demo · HTTP</span><a href="https://github.com/YMKT-95" target="_blank" rel="noopener noreferrer">YMKT-95 ↗</a></footer>
+</body>
+</html>

@@ -1,0 +1,170 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadEC2MetadataInSydney",
+      "Effect": "Allow",
+      "Action": "ec2:Describe*",
+      "Resource": "*",
+      "Condition": { "StringEquals": { "aws:RequestedRegion": "ap-southeast-2" } }
+    },
+    {
+      "Sid": "CreateTaggedVpcAndGateway",
+      "Effect": "Allow",
+      "Action": ["ec2:CreateVpc", "ec2:CreateInternetGateway"],
+      "Resource": [
+        "arn:aws:ec2:ap-southeast-2:828874705787:vpc/*",
+        "arn:aws:ec2:ap-southeast-2:828874705787:internet-gateway/*"
+      ],
+      "Condition": { "StringEquals": { "aws:RequestTag/Project": "terraform-cloud-platform-demo" } }
+    },
+    {
+      "Sid": "CreateTaggedNetworkChildren",
+      "Effect": "Allow",
+      "Action": ["ec2:CreateSubnet", "ec2:CreateRouteTable", "ec2:CreateSecurityGroup"],
+      "Resource": [
+        "arn:aws:ec2:ap-southeast-2:828874705787:subnet/*",
+        "arn:aws:ec2:ap-southeast-2:828874705787:route-table/*",
+        "arn:aws:ec2:ap-southeast-2:828874705787:security-group/*"
+      ],
+      "Condition": { "StringEquals": { "aws:RequestTag/Project": "terraform-cloud-platform-demo" } }
+    },
+    {
+      "Sid": "UseProjectVpcForNetworkChildren",
+      "Effect": "Allow",
+      "Action": ["ec2:CreateSubnet", "ec2:CreateRouteTable", "ec2:CreateSecurityGroup"],
+      "Resource": "arn:aws:ec2:ap-southeast-2:828874705787:vpc/*",
+      "Condition": { "StringEquals": { "ec2:ResourceTag/Project": "terraform-cloud-platform-demo" } }
+    },
+    {
+      "Sid": "CreateTaggedSecurityGroupRules",
+      "Effect": "Allow",
+      "Action": ["ec2:AuthorizeSecurityGroupIngress", "ec2:AuthorizeSecurityGroupEgress"],
+      "Resource": "arn:aws:ec2:ap-southeast-2:828874705787:security-group-rule/*",
+      "Condition": { "StringEquals": { "aws:RequestTag/Project": "terraform-cloud-platform-demo" } }
+    },
+    {
+      "Sid": "LaunchSmallTaggedInstances",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:ap-southeast-2:828874705787:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Project": "terraform-cloud-platform-demo",
+          "ec2:InstanceType": ["t3.micro", "t3.small"],
+          "ec2:MetadataHttpTokens": "required",
+          "ec2:Tenancy": "default"
+        },
+        "ArnLike": {
+          "ec2:InstanceProfile": "arn:aws:iam::828874705787:instance-profile/terraform-demo-dev-*"
+        }
+      }
+    },
+    {
+      "Sid": "LaunchEncryptedTaggedRootDisk",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:ap-southeast-2:828874705787:volume/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Project": "terraform-cloud-platform-demo",
+          "ec2:VolumeType": "gp3"
+        },
+        "Bool": { "ec2:Encrypted": "true" },
+        "NumericLessThanEquals": { "ec2:VolumeSize": "8" }
+      }
+    },
+    {
+      "Sid": "UseReviewedAmi",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:ap-southeast-2::image/ami-0720cb7af233b0529"
+    },
+    {
+      "Sid": "CreateLaunchNetworkInterface",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:ap-southeast-2:828874705787:network-interface/*"
+    },
+    {
+      "Sid": "UseProjectLaunchNetwork",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": [
+        "arn:aws:ec2:ap-southeast-2:828874705787:subnet/*",
+        "arn:aws:ec2:ap-southeast-2:828874705787:security-group/*"
+      ],
+      "Condition": { "StringEquals": { "ec2:ResourceTag/Project": "terraform-cloud-platform-demo" } }
+    },
+    {
+      "Sid": "ManageAndDeleteProjectResources",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:ModifyVpcAttribute",
+        "ec2:ModifySubnetAttribute",
+        "ec2:AttachInternetGateway",
+        "ec2:DetachInternetGateway",
+        "ec2:CreateRoute",
+        "ec2:ReplaceRoute",
+        "ec2:DeleteRoute",
+        "ec2:AssociateRouteTable",
+        "ec2:DisassociateRouteTable",
+        "ec2:ReplaceRouteTableAssociation",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:ModifySecurityGroupRules",
+        "ec2:ModifyInstanceCreditSpecification",
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "ec2:RebootInstances",
+        "ec2:TerminateInstances",
+        "ec2:GetConsoleOutput",
+        "ec2:DeleteSecurityGroup",
+        "ec2:DeleteSubnet",
+        "ec2:DeleteRouteTable",
+        "ec2:DeleteInternetGateway",
+        "ec2:DeleteVpc",
+        "ec2:DeleteVolume"
+      ],
+      "Resource": "arn:aws:ec2:ap-southeast-2:828874705787:*/*",
+      "Condition": { "StringEquals": { "ec2:ResourceTag/Project": "terraform-cloud-platform-demo" } }
+    },
+    {
+      "Sid": "TagResourcesDuringCreation",
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": "arn:aws:ec2:ap-southeast-2:828874705787:*/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": [
+            "CreateVpc", "CreateSubnet", "CreateInternetGateway", "CreateRouteTable",
+            "CreateSecurityGroup", "AuthorizeSecurityGroupIngress", "AuthorizeSecurityGroupEgress", "RunInstances"
+          ],
+          "aws:RequestTag/Project": "terraform-cloud-platform-demo"
+        }
+      }
+    },
+    {
+      "Sid": "MaintainProjectTagsWithoutChangingOwnership",
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": "arn:aws:ec2:ap-southeast-2:828874705787:*/*",
+      "Condition": {
+        "StringEquals": { "ec2:ResourceTag/Project": "terraform-cloud-platform-demo" },
+        "StringEqualsIfExists": { "aws:RequestTag/Project": "terraform-cloud-platform-demo" }
+      }
+    },
+    {
+      "Sid": "RemoveOnlyNonOwnershipTags",
+      "Effect": "Allow",
+      "Action": "ec2:DeleteTags",
+      "Resource": "arn:aws:ec2:ap-southeast-2:828874705787:*/*",
+      "Condition": {
+        "StringEquals": { "ec2:ResourceTag/Project": "terraform-cloud-platform-demo" },
+        "ForAllValues:StringNotEquals": { "aws:TagKeys": ["Project"] }
+      }
+    }
+  ]
+}

@@ -1,8 +1,7 @@
 name: Validate
 
 on:
-  push:
-    branches: [main]
+  workflow_call:
   pull_request:
   workflow_dispatch:
 
@@ -25,6 +24,13 @@ jobs:
         working-directory: terraform
       - run: terraform test
         working-directory: terraform
+
+  deployment-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: bash -n scripts/deploy-on-instance.sh
+      - run: python3 -m unittest discover -s tests -v
 
   container:
     runs-on: ubuntu-latest

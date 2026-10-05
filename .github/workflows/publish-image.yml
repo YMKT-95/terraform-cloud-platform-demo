@@ -1,27 +1,41 @@
-name: Publish image
+name: Ship showcase
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# Keep releases ordered; never cancel a deployment already touching the instance.
+concurrency:
+  group: showcase-release
+  cancel-in-progress: false
+
 jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
+
   publish:
+    needs: validate
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_ref: ${{ steps.image.outputs.reference }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Set image name
         shell: bash
-        run: |
-          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
-      - name: Build AMD64 image
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      - name: Build AMD64 image with source revision
         run: |
           docker build --platform linux/amd64 \
+            --build-arg APP_REVISION="$GITHUB_SHA" \
             --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
             -t "$IMAGE:sha-$GITHUB_SHA" ./app
@@ -32,17 +46,47 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
       - name: Publish and record immutable reference
+        id: image
         run: |
           docker push "$IMAGE:sha-$GITHUB_SHA"
           docker pull "$IMAGE:sha-$GITHUB_SHA"
           reference=$(docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE:sha-$GITHUB_SHA")
-          {
-            echo '### Deployment image'
-            echo
-            printf '`%s`\n' "$reference"
-            echo
-            echo 'Set the GHCR package visibility to public and verify an anonymous pull before AWS deployment.'
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "reference=$reference" >> "$GITHUB_OUTPUT"
+          printf '### Published image\n`%s`\n' "$reference" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify anonymous access
+        run: |
+          anonymous_config=$(mktemp -d)
+          DOCKER_CONFIG="$anonymous_config" docker pull "$IMAGE:sha-$GITHUB_SHA"
+          rmdir "$anonymous_config"
       - name: Log out
         if: always()
         run: docker logout ghcr.io
+
+  deploy:
+    needs: publish
+    if: github.ref == 'refs/heads/main' && vars.AWS_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Authenticate to AWS using OIDC
+        uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ap-southeast-2
+          role-session-name: showcase-${{ github.run_id }}
+          allowed-account-ids: '828874705787'
+      - name: Deploy immutable image and verify release on EC2
+        env:
+          IMAGE_REF: ${{ needs.publish.outputs.image_ref }}
+          SOURCE_REVISION: ${{ github.sha }}
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+        run: python3 scripts/deploy-via-ssm.py
+      - name: Record verified deployment
+        env:
+          IMAGE_REF: ${{ needs.publish.outputs.image_ref }}
+        run: |
+          printf '### Deployment verified\nCommit: `%s`\n\nImage: `%s`\n\nSSM verified both /health and the running source revision.\n' "$GITHUB_SHA" "$IMAGE_REF" >> "$GITHUB_STEP_SUMMARY"

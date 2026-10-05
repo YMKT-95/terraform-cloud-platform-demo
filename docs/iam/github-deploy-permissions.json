@@ -1,0 +1,25 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RunDeploymentOnDemoInstance",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": [
+        "arn:aws:ssm:ap-southeast-2::document/AWS-RunShellScript",
+        "arn:aws:ec2:ap-southeast-2:828874705787:instance/i-071cd75e3e74ac7b1"
+      ]
+    },
+    {
+      "Sid": "ReadDeploymentResult",
+      "Effect": "Allow",
+      "Action": "ssm:GetCommandInvocation",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-2"
+        }
+      }
+    }
+  ]
+}

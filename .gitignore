@@ -15,3 +15,7 @@ npm-debug.log*
 crash.log
 crash.*.log
 # Commit .terraform.lock.hcl and safe *.tfvars.example files.
+
+# Python deployment tooling cache.
+__pycache__/
+*.pyc

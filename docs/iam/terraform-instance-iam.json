@@ -1,0 +1,56 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ManageDemoInstanceRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:GetRole",
+        "iam:DeleteRole",
+        "iam:UpdateRole",
+        "iam:UpdateRoleDescription",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:ListRoleTags",
+        "iam:ListRolePolicies",
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole"
+      ],
+      "Resource": "arn:aws:iam::828874705787:role/terraform-demo-dev-*"
+    },
+    {
+      "Sid": "ManageDemoInstanceProfiles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateInstanceProfile",
+        "iam:GetInstanceProfile",
+        "iam:DeleteInstanceProfile",
+        "iam:AddRoleToInstanceProfile",
+        "iam:RemoveRoleFromInstanceProfile",
+        "iam:TagInstanceProfile",
+        "iam:UntagInstanceProfile",
+        "iam:ListInstanceProfileTags"
+      ],
+      "Resource": "arn:aws:iam::828874705787:instance-profile/terraform-demo-dev-*"
+    },
+    {
+      "Sid": "AttachOnlySSMCorePolicy",
+      "Effect": "Allow",
+      "Action": ["iam:AttachRolePolicy", "iam:DetachRolePolicy"],
+      "Resource": "arn:aws:iam::828874705787:role/terraform-demo-dev-*",
+      "Condition": {
+        "ArnEquals": { "iam:PolicyARN": "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore" }
+      }
+    },
+    {
+      "Sid": "PassDemoRoleOnlyToEC2",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::828874705787:role/terraform-demo-dev-*",
+      "Condition": { "StringEquals": { "iam:PassedToService": "ec2.amazonaws.com" } }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
-# 第二阶段：镜像交付与 AWS 部署准备
+# 第二阶段：镜像交付与首次 AWS 部署
 
-这一阶段将本地应用接入镜像发布流程，并写出首版 Terraform 配置。AWS 登录、真实 plan、apply、启动脚本验收和 destroy 是后续的独立验收环节，模拟测试不能替代它们。
+这一阶段将本地应用接入镜像发布流程，并使用 Terraform 部署到 AWS。AWS 登录、真实 plan、apply、启动脚本验收和 destroy 是独立验收环节，模拟测试不能替代它们。
 
 ## 镜像如何交付
 
@@ -112,7 +112,13 @@ Linux user data 默认首次启动时执行。这里配置 `user_data_replace_on
 - [远程验证通过](https://github.com/YMKT-95/terraform-cloud-platform-demo/actions/runs/37147126558)。
 - [镜像发布成功](https://github.com/YMKT-95/terraform-cloud-platform-demo/actions/runs/37147020593)，镜像源代码提交为 `ead8189`。
 - 已使用空白 Docker 凭据配置匿名拉取示例 tfvars 中的真实镜像 digest。
-- 真实 AWS plan/apply、EC2 上的启动脚本运行以及 destroy 尚未执行。
+- 2026-10-06（Pacific/Auckland）：真实 AWS plan 成功，首次 apply 创建全部 13 项资源，区域为 `ap-southeast-2`，实例类型为 `t3.micro`。
+- 部署后再次运行 `plan -detailed-exitcode` 返回 0：`No changes. Your infrastructure matches the configuration.`
+- EC2 的系统检查和实例检查均为 `ok`。
+- EC2 启动日志确认拉取了配置中的 GHCR digest，启动容器后输出 `Application is healthy`，cloud-init 正常结束；本次首次初始化约 356 秒（约 6 分钟）。
+- 从允许的客户端公网地址访问 `/` 与 `/health` 均返回 HTTP 200；响应分别为 `{"service":"terraform-cloud-platform-demo","version":"0.1.0"}` 与 `{"status":"healthy"}`。
+- 当前是本机执行 Terraform apply，尚未实现 GitHub Actions 自动部署到 AWS。
+- 实例替换、重启恢复、人工 SSM 会话和 destroy 尚未实测。当前部署仍保留，结束演示后需清理；本地 state、tfvars 和计划文件均已被 Git 忽略。
 
 ## 参考
 

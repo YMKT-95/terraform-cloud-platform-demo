@@ -31,7 +31,9 @@ if [ "$healthy" != true ]; then
   exit 1
 fi
 
-curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:$host_port/"
+curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:$host_port/" | grep -q 'From commit.'
+curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:$host_port/style.css" | grep -q -- '--green'
+curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:$host_port/api/info" | grep -q '"version":"0.2.0"'
 curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:$host_port/health" | grep -q '"status":"healthy"'
 test "$(docker exec "$container_id" id -u)" != 0
 

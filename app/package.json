@@ -1,6 +1,6 @@
 {
   "name": "terraform-cloud-platform-demo-app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Minimal HTTP service for a Terraform and AWS portfolio project",
   "type": "module",

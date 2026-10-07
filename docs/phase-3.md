@@ -61,7 +61,11 @@ Terraform 继续管理 VPC、EC2、IAM 和安全组，state 保留在本机。CD
 - 本地 AMD64 镜像通过首页、CSS、版本接口、健康、非 root 用户与 SIGTERM 退出验收。
 - 本地浏览器已确认页面与实时健康查询可用。
 - 部署脚本的故障注入覆盖：候选失败不影响旧服务、切换失败恢复旧服务、成功保留上一版本、拒绝可变镜像标签。模拟测试不替代实际 SSM 发布验收。
-- 远程 CI/CD 首次发布结果待工作流运行后补充。
+- 2026-10-07：首次完整远程 CI/CD 验收成功。[Ship showcase 第 4 次尝试](https://github.com/YMKT-95/terraform-cloud-platform-demo/actions/runs/37365003260/attempts/4) 的三项验证、publish 与 deploy 全部通过。前三次尝试因 GitHub hosted runner 分配故障未完成，恢复后仅重跑未成功的任务。
+- 本次发布源代码为 `5a9e6f82ae0e0344de04d975265c1529790e09fe`，应用版本为 `0.2.0`，镜像为 `ghcr.io/ymkt-95/terraform-cloud-platform-demo@sha256:b1fc86e116671002ea10bf74fc13dcca48e373461b2a44f5681a31dc896f42ff`。
+- publish 用时 41 秒；deploy 通过 OIDC 登录并经 SSM 完成容器更新，命令成功退出，日志确认健康与运行 revision 匹配。
+- 公网验收确认首页已返回展示页，`/health` 与 `/api/info` 均为 HTTP 200，运行 revision 与上述源代码提交一致。当前地址为 `http://32.236.240.144`，仍只允许配置的客户端 IP 访问；实例重建后地址可能变化。
+- 这次验证了成功发布路径；真实 AWS 上的失败回滚演练仍未执行，不能将模拟恢复测试描述为线上故障演练。
 
 ## 参考
 

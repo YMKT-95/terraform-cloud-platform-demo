@@ -2,7 +2,7 @@
 
 A small portfolio project connecting a Dockerised Node.js service with AWS infrastructure managed by Terraform.
 
-Current scope: a verified application and Docker image, GitHub Actions for validation and image publishing, and a successful Terraform deployment to one EC2 instance in Sydney. The first real apply created 13 resources, both HTTP endpoints passed, and a subsequent plan reported no changes. Cleanup, restart recovery and the networking-module refactor are still pending. This project uses the Terraform CLI and does not require HCP Terraform.
+Current scope: a live showcase page, a verified Docker image, and a working GitHub Actions delivery pipeline to one Terraform-managed EC2 instance in Sydney. The first real apply created 13 resources and a subsequent plan reported no changes. On 2026-10-07, image publishing and OIDC/SSM deployment passed end to end; public HTTP checks confirmed version 0.2.0 and the expected source revision. See the [successful workflow](https://github.com/YMKT-95/terraform-cloud-platform-demo/actions/runs/37365003260/attempts/4). Cleanup, restart recovery and the networking-module refactor are still pending. This project uses the Terraform CLI and does not require HCP Terraform.
 
 ## Run locally
 
